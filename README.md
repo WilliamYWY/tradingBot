@@ -261,6 +261,18 @@ class interval_than_make_one():
             return False
 ```
 
+### **Bot**
+Now comes the bot  
+  
+After defining the rule(strategy) that the bot needs to follow, lets see how bot actually simulates transaction.  
+The bot will first evaluate the new market data, then check previous orders if needed to be cross, and then see whether to place a new order.  
+For this example, we set our bot to evaluate the market every one hour.  
+That is:
+- Using 1 hour klines as data point (for example: 2:00 - 2:59)
+- Bot will do those above actions every 1 hour (start at 3:00 then sleep for 1 hour)
+
+
+
 
 
 

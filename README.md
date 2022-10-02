@@ -3,7 +3,9 @@
 Using Binance API to simulate transaction strategies.  
 Functions include:  
 * market evaluation 
-* hold & buy & sell evaluations
+* hold & buy & sell evaluations   
+  
+![](https://media.giphy.com/media/ioopmOHLqIDfGxLLKG/giphy.gif)
 ## Requirements
 * Python 
 * binance-futures-connector
@@ -52,6 +54,7 @@ client = UMFutures(base_url="https://testnet.binancefuture.com",
 With **client**, we can fetch data and make transactions
 
 ### **Fetch market data**
+![](https://media.giphy.com/media/S0kRodfOj6kvWrtRwM/giphy.gif)   
 We first define a structure for our data point  
 Here we fetch k-lines  
 ```python
@@ -136,6 +139,7 @@ def fetch_data(client:UMFutures, crypto:str, sep:str, start_time:str = None, end
 This function will return a list storing sim_data with data within start time and end time
 
 ### **Market Simulation**
+![](https://media.giphy.com/media/y31rRE5h3wyPXey8vx/giphy.gif)   
 Now we create a object that will loop through all the data point and store corresponding info   
 The market datat will be feed to bot.
 Parameters:
@@ -211,6 +215,7 @@ class market_status(Enum):
 ```
 
 ### **Strategy**
+![](https://media.giphy.com/media/gEvab1ilmJjA82FaSV/giphy.gif)   
 Strategy is the core of a trading bot  
 It will tell the bot when to place or liquidate an order  
   
@@ -277,6 +282,7 @@ class interval_than_make_one:
 ```
 
 ### **Bot**
+![](https://media.giphy.com/media/NHIecaiSc7YjK/giphy.gif)  
 Now comes the bot  
   
 After defining the rule(strategy) that the bot needs to follow, lets see how bot do the transaction.  

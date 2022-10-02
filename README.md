@@ -234,7 +234,7 @@ Parameters:
 - decision_time (oberve n klines before action)
 - limit_hold_time (hold the order for how long)
 ```python
-class interval_than_make_one():
+class interval_than_make_one:
     def __init__(self, decision_time, limit_hold_time):
         self.status = Status.OBSERVING
         self.decision_time=decision_time
@@ -300,6 +300,60 @@ There is only one public function in bot that will be called by market_sim
 - eval() return Status
 
 ** Code will be upload **
+
+## Main
+To simulate and test the strategy, we need three components.  
+- market_sim
+- TradingBot_v3_sim
+- strategy
+  
+First fetch the market data, then we define the strategy and finially we set up the trading bot.
+```python
+
+def SIM(client: UMFutures, crypto, start, end, time_sep, bot_strategy, stop_loss = None, stop_profit = None, sim_profit_loss = False, sim_interval = "1m", market_from_csv=False, sim_from_csv=True):
+    # Fetch maret data
+    if not market_from_csv:
+        data_list = fetch_data(client, crypto, time_sep, start, end)
+    else:
+        df = fetch_data_from_csv("PATH/DATA/POINT", start, end)
+        data_list = [df.values.tolist()]
+    #set up bot
+    strategy_name = bot_strategy.name
+    bot = TradingBot_v3_sim(client, crypto, bot_strategy, leverage=1, balance=1000000,invest_ratio=0.95, stop_loss_ratio=stop_loss, sim_stop_profit_loss = sim_profit_loss, sim_stop_interval=sim_interval, stop_profit_ratio=stop_profit, simulate_from_csv=sim_from_csv)
+    
+    #set output pth
+    OUTPUT_pth = os.path.join(f"sim output/{crypto}/", strategy_name)
+    file_name_base = start + "_" + end + "_"
+    OUTPUT_pth = os.path.join(OUTPUT_pth, file_name_base)
+    if not os.path.exists(OUTPUT_pth):
+        os.makedirs(OUTPUT_pth)
+
+    #set market 
+    market_1 = market_sim(data_list, bot, OUTPUT_pth, market_from_csv)
+    market_1.start()
+
+    # save report
+    bot.order_history.to_csv(os.path.join(OUTPUT_pth,f"trade_history.csv"))
+    market_1.market_history.to_csv(os.path.join(OUTPUT_pth,f"market_history.csv"))
+    bot_strategy.history.to_csv(os.path.join(OUTPUT_pth,f"strategy_history.csv"))
+    return
+```
+```python
+if __name__ == "main":
+    true_client = UMFutures(key=os.getenv("TRUE_KEY"), secret=os.getenv("TRUE_SECRET"))
+    bot_strategy = interval_than_make_one(3,1)
+    SIM(
+        true_client, 
+        "BTCUSDT",
+        "2020-01-01", 
+        "2022-08-30", 
+        "1h", 
+        bot_strategy,
+        sim_profit_loss=False
+    )
+```
+
+
 
 
   

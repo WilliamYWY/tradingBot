@@ -309,6 +309,7 @@ There is only one public function in bot that will be called by market_sim
 ** Code will be upload **
 
 ## Main
+![](https://media.giphy.com/media/ViBN1GDg1MdgKKz9gj/giphy.gif)   
 To simulate and test the strategy, we need three components.  
 - market_sim
 - TradingBot_v3_sim

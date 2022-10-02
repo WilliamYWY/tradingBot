@@ -335,7 +335,8 @@ def SIM(client: UMFutures, crypto, start, end, time_sep, bot_strategy, stop_loss
     # save report
     bot.order_history.to_csv(os.path.join(OUTPUT_pth,f"trade_history.csv"))
     market_1.market_history.to_csv(os.path.join(OUTPUT_pth,f"market_history.csv"))
-    bot_strategy.history.to_csv(os.path.join(OUTPUT_pth,f"strategy_history.csv"))
+    if hasattr(bot_strategy, "history"):
+      bot_strategy.history.to_csv(os.path.join(OUTPUT_pth,f"strategy_history.csv"))
     return
 ```
 ```python
@@ -352,6 +353,18 @@ if __name__ == "main":
         sim_profit_loss=False
     )
 ```
+
+## Output
+The simulation will generate 4 files
+- info.txt
+- market_history.csv
+- strategy_history.csv
+- trade_history.csv
+  
+Info will store the information of this simulation.   
+Market history contains the information of each kline.  
+Strategy history will record every evalution your strategy done.  
+Trade history contains all the transaction the trading bot done.  
 
 
 

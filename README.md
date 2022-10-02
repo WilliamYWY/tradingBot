@@ -54,7 +54,7 @@ With **client**, we can fetch data and make transactions
 We first define a structure for our data point  
 Here we fetch k-lines  
 ```python
-class sim_data():
+class sim_data(): #iterable
     def __init__(self, client: UMFutures, crypto, start_time, end_time, interval):
         self.client = client
         self.start_time = int(start_time)
@@ -84,9 +84,11 @@ Define a function to organize data we needed with respect to:
 ```python
 def fetch_data(client:UMFutures, crypto:str, sep:str, start_time:str = None, end_time:str = None, start_time_int: int = None, end_time_int: int = None):    
     data_list = []
+    #fetch with string date
     if start_time and end_time:
         start = datetime.datetime.strptime(start_time, "%Y-%m-%d")
         end = datetime.datetime.strptime(end_time, "%Y-%m-%d")
+    #fetch with timestamp
     elif start_time_int and end_time_int:
         start = datetime.datetime.fromtimestamp(start_time_int)
         end = datetime.datetime.fromtimestamp(end_time_int)
@@ -101,7 +103,7 @@ def fetch_data(client:UMFutures, crypto:str, sep:str, start_time:str = None, end
             data = sim_data(client, crypto, cur_start_stamp, cur_end_stamp, sep)
             data_list.append(data)
             cur_start = cur_end
-            time.sleep(0.1)
+            time.sleep(0.1) #prevent limit error
     # Data sep by minutes
     elif sep[-1] == "m": 
         limit = 500 // (60 // int(sep[:-1]))
@@ -112,7 +114,7 @@ def fetch_data(client:UMFutures, crypto:str, sep:str, start_time:str = None, end
             data = sim_data(client, crypto, cur_start_stamp, cur_end_stamp, sep)
             data_list.append(data)
             cur_start = cur_end
-            time.sleep(0.1)
+            time.sleep(0.1) #prevent limit error
     # Pick up rest data
     if cur_start < end:
         cur_start_stamp = datetime.datetime.timestamp(cur_start)*1000
@@ -134,12 +136,13 @@ This function will return a list storing sim_data with data within start time an
 
 ### **Market Simulation**
 Now we create a object that will loop through all the data point and store corresponding info   
+The market datat will be feed to bot.
 Parameters:
 - market_data (data fectched by function above)
 - bot (we will cover later)
 - info_out (path storing info)
 ```python
-class market():
+class market_sim():
     def __init__(self, market_data: list, bot: TradingBot_v2, info_out):
         self.market_data = market_data
         self.bot = bot
@@ -189,16 +192,21 @@ class market():
 ### **Enums**
 Here we create some useful enum objects  
 ```python
-class Stop_status(Enum):
-    LOSS = 0
-    PROFIT = 1
-
 class Status(Enum):
-    OBERVING = 0
+    OBSERVING = 0
     SELL = 1
     BUY = 2
     HOLDING_BUY = 3
     HOLDING_SELL = 4
+
+class Stop_status(Enum):
+    LOSS = 0
+    PROFIT = 1
+
+class market_status(Enum):
+    SHORT = 0
+    LONG = 1
+    NONE = 2
 ```
 
 ### **Strategy**
@@ -209,6 +217,7 @@ There are three main function that will be called by the bot:
 - eval_market  (return None)  (this function will eval the market and update the status based on strategy)
 - eval_hold    (return None or Status(Enum)) (Status.BUY to place long order, Status.SELL to place short order)
 - eval_cross   (return Bool) (True to cross the order else Flase)
+- change_status (return None) (Change the current status to OBSERVEING when the order is crossed by TP/SL)
   
 #### Here we take an example  
 Assume that we want to place an order every n klines with same color.  
@@ -226,8 +235,8 @@ Parameters:
 - limit_hold_time (hold the order for how long)
 ```python
 class interval_than_make_one():
-    def __init__(self, decision_time, limit_hold_time,status=None):
-        self.status = status
+    def __init__(self, decision_time, limit_hold_time):
+        self.status = Status.OBSERVING
         self.decision_time=decision_time
         self.observed_time = 0
         self.limit_hold_time = limit_hold_time
@@ -248,7 +257,7 @@ class interval_than_make_one():
             self.observed_time = 1
     
     def eval_hold(self,):
-        if self.observed_time >= self.decision_time and self.status != None:
+        if self.observed_time >= self.decision_time and self.status != Status.OBSERVING:
             self.observed_time = 0
             return self.status
         else:
@@ -259,17 +268,43 @@ class interval_than_make_one():
             return True
         else:
             return False
+    def change_status(self, status: Status):
+        self.status = status
+        self.observed_time = 0
+        return
+        
 ```
 
 ### **Bot**
 Now comes the bot  
   
-After defining the rule(strategy) that the bot needs to follow, lets see how bot actually simulates transaction.  
+After defining the rule(strategy) that the bot needs to follow, lets see how bot do the transaction.  
 The bot will first evaluate the new market data, then check previous orders if needed to be cross, and then see whether to place a new order.  
 For this example, we set our bot to evaluate the market every one hour.  
 That is:
 - Using 1 hour klines as data point (for example: 2:00 - 2:59)
-- Bot will do those above actions every 1 hour (start at 3:00 then sleep for 1 hour)
+- Bot will do those above actions every 1 hour (start at 3:00 then sleep for 1 hour)  
+Since we simulate on history data there is no need to sleep.  
+  
+When the bot call strategy.eval_hold and get the signal Status.BUY or Status.SELL, the bot will open an order and store info of that order.  
+When there is an existing order and strategy.eval_cross return True, the order will be crossed and the profit will be calculated.   
+
+Take profit and stop loss is important when trading.  
+This bot can also simulate the TP/SL with resolution of 1 min.  
+The bot will check the TP/SL every data point.  
+That is:  
+- If Using 1 hour klines as data point, the bot will fetch 59 1 min klines.   
+- For example: Data point is one kline data from 1:00 to 1:59, the bot will fetch 1 min klines within this period, and use **highest** and **lowest** price to check TP/SL.
+  
+There is only one public function in bot that will be called by market_sim
+- eval() return Status
+
+** Code will be upload **
+
+
+  
+
+
 
 
 

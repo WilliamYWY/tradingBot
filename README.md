@@ -9,6 +9,7 @@ Functions include:
 * binance-futures-connector
 * Pandas
 * Numpy
+* talib
 ## Reference 
 [Binance API doc](https://binance-docs.github.io/apidocs/futures/en/#general-info)
 ## Installation 

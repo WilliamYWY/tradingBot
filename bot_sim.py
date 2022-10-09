@@ -10,6 +10,7 @@ from package.dataset import *
 
 warnings.filterwarnings("ignore")
 
+
 class TradingBot_v3_sim:
     def __init__(
         self,
@@ -79,7 +80,7 @@ class TradingBot_v3_sim:
                 "Set sim_stop_profit_loss to Ture but not setting sim_stop_interval"
             )
         if self.sim_stop_profit_loss and (
-            not self.stop_loss_ratio or not stop_profit_ratio
+            not self.stop_loss_ratio and not stop_profit_ratio
         ):
             raise Exception(
                 "Set sim_stop_profit_loss to Ture but not provide stop_loss_ratio or stop_profit_ratio"
@@ -149,6 +150,24 @@ class TradingBot_v3_sim:
     def _liquidate(self, order, data, cross_ratio=1, simulate=False):  # 平倉
         # if simluate == true the bot will simluate TP/SL
         if simulate:
+            # Rough check if stop in this interval
+            if self.stop_loss_ratio and self.stop_profit_ratio:
+                if order["side"] == Status.BUY and (float(data[2])-float(order["price"]))/float(order["price"])<self.stop_profit_ratio and (float(data[3])-float(order["price"]))/float(order["price"])>self.stop_loss_ratio*-1:
+                    return False
+                elif order["side"] == Status.SELL and (float(order["price"])-float(data[3]))/float(order["price"])<self.stop_profit_ratio and (float(order["price"])-float(data[2]))/float(order["price"])>self.stop_loss_ratio*-1:
+                    return False
+            
+            elif self.stop_loss_ratio:
+                if order["side"] == Status.BUY and (float(data[3])-float(order["price"]))/float(order["price"])>self.stop_loss_ratio*-1:
+                    return False
+                elif order["side"] == Status.SELL and (float(order["price"])-float(data[2]))/float(order["price"])>self.stop_loss_ratio*-1:
+                    return False
+            elif self.stop_profit_ratio:
+                if order["side"] == Status.BUY and (float(data[2])-float(order["price"]))/float(order["price"])<self.stop_profit_ratio:
+                    return False
+                elif order["side"] == Status.SELL and (float(order["price"])-float(data[3]))/float(order["price"])<self.stop_profit_ratio:
+                    return False
+            # did stop in this interval so find the exact time
             stop_status, cross_price, cross_time = self._simulate_stop_profit_loss(
                 order["price"],
                 data[0],
@@ -269,9 +288,7 @@ class TradingBot_v3_sim:
             order["hold_time"] += 1
         return
 
-    def _simulate_stop_profit_loss(
-        self, order_price, start_time: int, end_time: int, position, interval="1m"
-    ):
+    def _simulate_stop_profit_loss(self, order_price, start_time: int, end_time: int, position, interval="1m"):
         # Pull from Binance API (might triger error, adjust sleep time in dataset.py)
         if not self.simulate_from_csv:
             data_list = fetch_data(
@@ -308,7 +325,7 @@ class TradingBot_v3_sim:
                         <= -1 * self.stop_loss_ratio
                     ):
                         return Stop_status.LOSS, bottom, data[0]
-                    elif (
+                    if (
                         self.stop_profit_ratio
                         and (top - order_price) / order_price >= self.stop_profit_ratio
                     ):
@@ -317,9 +334,9 @@ class TradingBot_v3_sim:
                 elif position == Status.SELL:
                     bottom = float(data[3])
                     top = float(data[2])
-                    if (order_price - top) / order_price <= -1 * self.stop_loss_ratio:
+                    if self.stop_loss_ratio and (order_price - top) / order_price <= -1 * self.stop_loss_ratio:
                         return Stop_status.LOSS, top, data[0]
-                    elif (order_price - bottom) / order_price >= self.stop_profit_ratio:
+                    if self.stop_profit_ratio and (order_price - bottom) / order_price >= self.stop_profit_ratio:
                         return Stop_status.PROFIT, bottom, data[0]
 
         return None, None, None
@@ -351,3 +368,4 @@ class TradingBot_v3_sim:
             elif action == Status.SELL:
                 self._sell(data, spend_amount=spend_amount)
         return action
+
